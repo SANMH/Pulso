@@ -1,0 +1,84 @@
+<resources>
+    <string name="app_name">Pulso</string>
+
+    <!-- Networks -->
+    <string name="network_bluesky">Bluesky</string>
+    <string name="network_mastodon">Mastodon</string>
+    <string name="network_reddit">Reddit</string>
+    <string name="network_bookmarks">Guardados</string>
+
+    <!-- Watch Modes -->
+    <string name="mode_round">Redondo</string>
+    <string name="mode_square">Cuadrado</string>
+    <string name="mode_full">Expandido</string>
+
+    <!-- Status & Empty States -->
+    <string name="loading_feed">Cargando pulso social…</string>
+    <string name="empty_feed_title">Sin publicaciones</string>
+    <string name="empty_feed_subtitle">Desliza para cambiar de red o recarga el feed.</string>
+    <string name="empty_bookmarks_title">Sin guardados</string>
+    <string name="empty_bookmarks_subtitle">Mantén presionado un post para guardarlo en tu reloj.</string>
+    <string name="retry_button">Reintentar</string>
+    <string name="offline_cache_badge">Caché local</string>
+
+    <!-- Gestures & Controls -->
+    <string name="gesture_hint_title">Gestos del reloj</string>
+    <string name="gesture_swipe_vertical">Desliza ↑ ↓</string>
+    <string name="gesture_swipe_vertical_desc">Siguiente o anterior post</string>
+    <string name="gesture_double_tap">Doble toque</string>
+    <string name="gesture_double_tap_desc">Dar me gusta al instante</string>
+    <string name="gesture_swipe_horizontal">Desliza ← →</string>
+    <string name="gesture_swipe_horizontal_desc">Cambiar de red social</string>
+    <string name="gesture_long_press">Mantén pulsado</string>
+    <string name="gesture_long_press_desc">Abrir menú rápido y auto-scroll</string>
+    <string name="gesture_crown_drag">Corona lateral</string>
+    <string name="gesture_crown_drag_desc">Arrastra para hacer scroll continuo</string>
+    <string name="gesture_understood">Entendido</string>
+
+    <!-- Quick Menu & Settings -->
+    <string name="quick_menu_title">Menú rápido</string>
+    <string name="action_like">Me gusta</string>
+    <string name="action_liked">Te gusta</string>
+    <string name="action_bookmark">Guardar</string>
+    <string name="action_bookmarked">Guardado</string>
+    <string name="action_open_link">Abrir enlace</string>
+    <string name="action_refresh">Actualizar</string>
+    <string name="action_settings">Ajustes</string>
+    <string name="action_close">Cerrar</string>
+
+    <string name="settings_title">Ajustes del reloj</string>
+    <string name="setting_auto_scroll">Auto-scroll</string>
+    <string name="setting_tap_to_scroll">Toque para avanzar</string>
+    <string name="setting_haptics">Vibración háptica</string>
+    <string name="setting_large_text">Texto grande</string>
+    <string name="setting_gesture_guide">Ver guía de gestos</string>
+
+    <!-- Auto-scroll speeds -->
+    <string name="speed_off">Desactivado</string>
+    <string name="speed_slow">Lento (7s)</string>
+    <string name="speed_medium">Medio (4.5s)</string>
+    <string name="speed_fast">Rápido (2.5s)</string>
+
+    <!-- Gesture Telemetry Labels -->
+    <string name="telemetry_ready">Listo para gestos</string>
+    <string name="telemetry_next">↑ Siguiente post</string>
+    <string name="telemetry_prev">↓ Post anterior</string>
+    <string name="telemetry_like">♥ Me gusta por doble toque</string>
+    <string name="telemetry_unlike">♡ Me gusta quitado</string>
+    <string name="telemetry_bookmark">★ Guardado en reloj</string>
+    <string name="telemetry_crown">◎ Scroll con corona</string>
+    <string name="telemetry_autoscroll">⟳ Auto-scroll activo</string>
+    <string name="telemetry_channel">⇄ Cambio de red: %1$s</string>
+
+    <!-- Accessibility Content Descriptions -->
+    <string name="cd_avatar">Avatar de %1$s</string>
+    <string name="cd_post_image">Imagen de la publicación</string>
+    <string name="cd_prev_post">Publicación anterior</string>
+    <string name="cd_next_post">Siguiente publicación</string>
+    <string name="cd_toggle_autoscroll">Alternar auto-scroll</string>
+    <string name="cd_open_settings">Abrir ajustes del reloj</string>
+    <string name="cd_open_guide">Abrir guía de gestos</string>
+    <string name="cd_like_button">Botón me gusta</string>
+    <string name="cd_bookmark_button">Botón guardar</string>
+    <string name="cd_crown_control">Corona giratoria para scroll</string>
+</resources>

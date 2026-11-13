@@ -1,0 +1,6 @@
+{
+  "name": "Pulso",
+  "description": "Lector y controlador social por gestos táctiles optimizado para pantallas pequeñas de reloj inteligente.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
