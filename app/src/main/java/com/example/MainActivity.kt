@@ -5,13 +5,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
-import com.example.ui.PulsoApp
+import androidx.lifecycle.lifecycleScope
+import com.example.remote.PhoneLink
+import com.example.remote.RemoteControlScreen
 import com.example.ui.theme.PulsoTheme
-import com.example.ui.viewmodel.PulsoViewModel
 
+/**
+ * Pulso en el reloj: mando a distancia para Facebook e Instagram en el teléfono.
+ * (El lector de Bluesky/Mastodon/Reddit de ui/PulsoApp.kt queda en el código pero ya no se muestra.)
+ */
 class MainActivity : ComponentActivity() {
-    private val viewModel: PulsoViewModel by viewModels()
+    private lateinit var phoneLink: PhoneLink
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,10 +23,21 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
         )
+        phoneLink = PhoneLink(this, lifecycleScope)
         setContent {
             PulsoTheme {
-                PulsoApp(viewModel = viewModel)
+                RemoteControlScreen(phoneLink)
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        phoneLink.start()
+    }
+
+    override fun onPause() {
+        phoneLink.stop()
+        super.onPause()
     }
 }
