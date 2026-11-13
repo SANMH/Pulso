@@ -1,6 +1,14 @@
 package com.example.remote
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.automirrored.rounded.VolumeDown
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -146,7 +154,51 @@ fun RemoteControlScreen(link: PhoneLink) {
                 }
             }
             Spacer(Modifier.height(10.dp))
-            BackPill { link.send(PulsoProtocol.CMD_BACK) }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SmallAction(Icons.AutoMirrored.Rounded.VolumeDown, "Bajar volumen") { link.send(PulsoProtocol.CMD_VOLUME_DOWN) }
+                SmallAction(Icons.AutoMirrored.Rounded.ArrowBack, "Atrás") { link.send(PulsoProtocol.CMD_BACK) }
+                SmallAction(Icons.AutoMirrored.Rounded.VolumeUp, "Subir volumen") { link.send(PulsoProtocol.CMD_VOLUME_UP) }
+            }
+        }
+        VolumeArc(state.volumePercent, state.volumeEventId)
+    }
+}
+
+@Composable
+private fun SmallAction(icon: ImageVector, description: String, onClick: () -> Unit) {
+    PressableCircle(
+        description = description,
+        fill = Modifier.background(WatchSurfaceElevated).border(1.dp, WatchBorder, CircleShape),
+        shape = CircleShape,
+        size = 38.dp,
+        onClick = onClick
+    ) {
+        Icon(icon, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(20.dp))
+    }
+}
+
+/** Arco en el borde derecho de la pantalla redonda que muestra el volumen unos segundos. */
+@Composable
+private fun VolumeArc(percent: Int?, eventId: Long) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(eventId) {
+        if (eventId == 0L || percent == null) return@LaunchedEffect
+        visible = true
+        delay(1_800)
+        visible = false
+    }
+    val alpha by animateFloatAsState(if (visible) 1f else 0f, animationSpec = tween(250), label = "volArc")
+    val level by animateFloatAsState((percent ?: 0) / 100f, animationSpec = tween(200), label = "volLevel")
+    if (alpha == 0f) return
+    Canvas(Modifier.fillMaxSize().padding(5.dp).graphicsLayer { this.alpha = alpha }) {
+        val stroke = 5.dp.toPx()
+        val sweep = 80f
+        val start = 40f // de abajo (40°) hacia arriba (-40°), lado derecho
+        val arcSize = Size(size.width - stroke, size.height - stroke)
+        val topLeft = Offset(stroke / 2, stroke / 2)
+        drawArc(WatchBorder, start, -sweep, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+        if (level > 0f) {
+            drawArc(CyanPulse, start, -sweep * level, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
         }
     }
 }
@@ -295,27 +347,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.NavHalf(
             .semantics { contentDescription = description }
     ) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(30.dp))
-    }
-}
-
-@Composable
-private fun BackPill(onClick: () -> Unit) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (pressed) 0.92f else 1f, label = "press")
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .scale(scale)
-            .clip(RoundedCornerShape(50))
-            .background(WatchSurfaceElevated)
-            .border(1.dp, WatchBorder, RoundedCornerShape(50))
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 7.dp)
-    ) {
-        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(16.dp))
-        Spacer(Modifier.width(6.dp))
-        Text("Atrás", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
     }
 }
 

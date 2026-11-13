@@ -12,6 +12,8 @@ object PulsoProtocol {
     const val CMD_OPEN_FACEBOOK_VIDEO = "open_fb_video"
     const val CMD_OPEN_INSTAGRAM = "open_ig"
     const val CMD_OPEN_INSTAGRAM_VIDEO = "open_ig_video"
+    const val CMD_VOLUME_UP = "vol_up"
+    const val CMD_VOLUME_DOWN = "vol_down"
     const val CMD_PING = "ping"
 
     const val ACK_OK = "ok"

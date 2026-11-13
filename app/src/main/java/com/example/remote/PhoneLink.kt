@@ -29,6 +29,8 @@ object PulsoProtocol {
     const val CMD_OPEN_FACEBOOK_VIDEO = "open_fb_video"
     const val CMD_OPEN_INSTAGRAM = "open_ig"
     const val CMD_OPEN_INSTAGRAM_VIDEO = "open_ig_video"
+    const val CMD_VOLUME_UP = "vol_up"
+    const val CMD_VOLUME_DOWN = "vol_down"
     const val CMD_PING = "ping"
 
     const val ACK_OK = "ok"
@@ -44,7 +46,11 @@ enum class LinkHealth { UNKNOWN, OK, WARNING, ERROR }
 data class LinkState(
     val health: LinkHealth = LinkHealth.UNKNOWN,
     val message: String = "Conectando…",
-    val foregroundApp: String? = null
+    val foregroundApp: String? = null,
+    /** Volumen multimedia del teléfono (0-100) tras la última orden de volumen. */
+    val volumePercent: Int? = null,
+    /** Cambia en cada ajuste de volumen para que la UI muestre el indicador. */
+    val volumeEventId: Long = 0L
 )
 
 /** Envía órdenes al teléfono por la Wearable Data Layer y escucha sus respuestas. */
@@ -100,7 +106,10 @@ class PhoneLink(context: Context, private val scope: CoroutineScope) : MessageCl
         timeoutJob?.cancel()
         val parts = String(event.data, Charsets.UTF_8).split('|')
         val result = parts.getOrNull(0).orEmpty()
+        val command = parts.getOrNull(1).orEmpty()
         val foreground = parts.getOrNull(2)?.takeIf { it.isNotBlank() }
+        val volume = parts.getOrNull(3)?.toIntOrNull()
+        val isVolume = command == PulsoProtocol.CMD_VOLUME_UP || command == PulsoProtocol.CMD_VOLUME_DOWN
         val appName = when (foreground) {
             PulsoProtocol.PKG_FACEBOOK -> "Facebook"
             PulsoProtocol.PKG_INSTAGRAM -> "Instagram"
@@ -110,12 +119,15 @@ class PhoneLink(context: Context, private val scope: CoroutineScope) : MessageCl
         _state.value = when (result) {
             PulsoProtocol.ACK_OK -> LinkState(
                 health = if (appName == "Facebook" || appName == "Instagram") LinkHealth.OK else LinkHealth.WARNING,
-                message = when (appName) {
-                    "Facebook", "Instagram" -> "En $appName"
-                    null -> "Teléfono listo"
+                message = when {
+                    isVolume && volume != null -> "Volumen $volume%"
+                    appName == "Facebook" || appName == "Instagram" -> "En $appName"
+                    appName == null -> "Teléfono listo"
                     else -> "Abre Facebook o Instagram"
                 },
-                foregroundApp = appName
+                foregroundApp = appName,
+                volumePercent = volume,
+                volumeEventId = if (isVolume) System.nanoTime() else _state.value.volumeEventId
             )
             PulsoProtocol.ACK_NO_SERVICE -> LinkState(LinkHealth.ERROR, "Activa Pulso en Accesibilidad del teléfono")
             PulsoProtocol.ACK_NO_APP -> LinkState(LinkHealth.ERROR, "Esa app no está instalada en el teléfono")
