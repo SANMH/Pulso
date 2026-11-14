@@ -14,9 +14,12 @@ object PulsoProtocol {
     const val CMD_OPEN_INSTAGRAM_VIDEO = "open_ig_video"
     const val CMD_VOLUME_UP = "vol_up"
     const val CMD_VOLUME_DOWN = "vol_down"
+    const val CMD_SKIP_AD = "skip_ad"
     const val CMD_PING = "ping"
 
     const val ACK_OK = "ok"
+    /** No había botón de omitir a la vista: se pasó a la siguiente publicación. */
+    const val ACK_AD_NEXT = "ad_next"
     const val ACK_NO_SERVICE = "no_service"
     const val ACK_NO_APP = "no_app"
     const val ACK_ERROR = "error"

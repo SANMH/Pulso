@@ -36,6 +36,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.OndemandVideo
+import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SlowMotionVideo
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -84,11 +85,13 @@ private val InstagramGradient = Brush.linearGradient(
     start = Offset(0f, Float.POSITIVE_INFINITY),
     end = Offset(Float.POSITIVE_INFINITY, 0f)
 )
+private val SkipAdAmber = Color(0xFFFBBF24)
 private val ButtonSize = 42.dp
 
 /**
  * Mando a distancia. Izquierda: Facebook Lite y su sección de video. Derecha: Instagram y Reels.
- * Centro: anterior / siguiente (también con el bisel o deslizando). Abajo: atrás.
+ * Centro: anterior / siguiente (también con el bisel o deslizando).
+ * Abajo: volumen, atrás y omitir anuncio.
  */
 @Composable
 fun RemoteControlScreen(link: PhoneLink) {
@@ -154,9 +157,11 @@ fun RemoteControlScreen(link: PhoneLink) {
                 }
             }
             Spacer(Modifier.height(10.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Cuatro botones de 36 dp: el máximo que cabe en esta fila sin que el borde redondo los recorte.
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 SmallAction(Icons.AutoMirrored.Rounded.VolumeDown, "Bajar volumen") { link.send(PulsoProtocol.CMD_VOLUME_DOWN) }
                 SmallAction(Icons.AutoMirrored.Rounded.ArrowBack, "Atrás") { link.send(PulsoProtocol.CMD_BACK) }
+                SmallAction(Icons.Rounded.SkipNext, "Omitir anuncio", tint = SkipAdAmber) { link.send(PulsoProtocol.CMD_SKIP_AD) }
                 SmallAction(Icons.AutoMirrored.Rounded.VolumeUp, "Subir volumen") { link.send(PulsoProtocol.CMD_VOLUME_UP) }
             }
         }
@@ -165,15 +170,15 @@ fun RemoteControlScreen(link: PhoneLink) {
 }
 
 @Composable
-private fun SmallAction(icon: ImageVector, description: String, onClick: () -> Unit) {
+private fun SmallAction(icon: ImageVector, description: String, tint: Color = TextPrimary, onClick: () -> Unit) {
     PressableCircle(
         description = description,
         fill = Modifier.background(WatchSurfaceElevated).border(1.dp, WatchBorder, CircleShape),
         shape = CircleShape,
-        size = 38.dp,
+        size = 36.dp,
         onClick = onClick
     ) {
-        Icon(icon, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
     }
 }
 

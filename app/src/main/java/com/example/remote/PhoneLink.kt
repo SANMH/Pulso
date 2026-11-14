@@ -31,9 +31,12 @@ object PulsoProtocol {
     const val CMD_OPEN_INSTAGRAM_VIDEO = "open_ig_video"
     const val CMD_VOLUME_UP = "vol_up"
     const val CMD_VOLUME_DOWN = "vol_down"
+    const val CMD_SKIP_AD = "skip_ad"
     const val CMD_PING = "ping"
 
     const val ACK_OK = "ok"
+    /** No había botón de omitir a la vista: se pasó a la siguiente publicación. */
+    const val ACK_AD_NEXT = "ad_next"
     const val ACK_NO_SERVICE = "no_service"
     const val ACK_NO_APP = "no_app"
 
@@ -116,8 +119,12 @@ class PhoneLink(context: Context, private val scope: CoroutineScope) : MessageCl
             null -> null
             else -> "otra app"
         }
-        _state.value = when (result) {
-            PulsoProtocol.ACK_OK -> LinkState(
+        val skippedAd = result == PulsoProtocol.ACK_OK && command == PulsoProtocol.CMD_SKIP_AD
+        _state.value = when {
+            skippedAd -> LinkState(LinkHealth.OK, "Anuncio omitido", foregroundApp = appName)
+            result == PulsoProtocol.ACK_AD_NEXT ->
+                LinkState(LinkHealth.OK, "Sin botón: siguiente", foregroundApp = appName)
+            result == PulsoProtocol.ACK_OK -> LinkState(
                 health = if (appName == "Facebook" || appName == "Instagram") LinkHealth.OK else LinkHealth.WARNING,
                 message = when {
                     isVolume && volume != null -> "Volumen $volume%"
@@ -129,8 +136,8 @@ class PhoneLink(context: Context, private val scope: CoroutineScope) : MessageCl
                 volumePercent = volume,
                 volumeEventId = if (isVolume) System.nanoTime() else _state.value.volumeEventId
             )
-            PulsoProtocol.ACK_NO_SERVICE -> LinkState(LinkHealth.ERROR, "Activa Pulso en Accesibilidad del teléfono")
-            PulsoProtocol.ACK_NO_APP -> LinkState(LinkHealth.ERROR, "Esa app no está instalada en el teléfono")
+            result == PulsoProtocol.ACK_NO_SERVICE -> LinkState(LinkHealth.ERROR, "Activa Pulso en Accesibilidad del teléfono")
+            result == PulsoProtocol.ACK_NO_APP -> LinkState(LinkHealth.ERROR, "Esa app no está instalada en el teléfono")
             else -> LinkState(LinkHealth.ERROR, "El teléfono no pudo hacerlo")
         }
     }

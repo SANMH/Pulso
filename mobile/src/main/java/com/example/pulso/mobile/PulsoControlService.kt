@@ -66,9 +66,53 @@ class PulsoControlService : AccessibilityService() {
             }
             PulsoProtocol.CMD_NEXT -> gesture(delay) { w, h -> swipe(w / 2f, h * 0.72f, w / 2f, h * 0.28f) }
             PulsoProtocol.CMD_PREV -> gesture(delay) { w, h -> swipe(w / 2f, h * 0.28f, w / 2f, h * 0.72f) }
+            PulsoProtocol.CMD_SKIP_AD -> skipAd(delay)
             PulsoProtocol.CMD_PING -> PulsoProtocol.ACK_OK
             else -> PulsoProtocol.ACK_ERROR
         }
+    }
+
+    /**
+     * Pulsa el botón "Omitir / Skip / Saltar" del anuncio en pantalla. Si no hay ninguno
+     * (publicación patrocinada, o el botón aún muestra la cuenta atrás), pasa a la siguiente.
+     */
+    private fun skipAd(delay: Long): String {
+        val button = findSkipButton(rootInActiveWindow)
+        if (button != null) {
+            val bounds = Rect().also { button.getBoundsInScreen(it) }
+            main.postDelayed({
+                if (!button.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                    dispatchGesture(tap(bounds.exactCenterX(), bounds.exactCenterY()), null, null)
+                }
+            }, delay)
+            Log.i(TAG, "Botón de omitir anuncio pulsado")
+            return PulsoProtocol.ACK_OK
+        }
+        gesture(delay) { w, h -> swipe(w / 2f, h * 0.72f, w / 2f, h * 0.28f) }
+        return PulsoProtocol.ACK_AD_NEXT
+    }
+
+    private fun findSkipButton(root: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
+        var found: AccessibilityNodeInfo? = null
+        collect(root) { node ->
+            if (found != null || !node.isVisibleToUser) return@collect
+            val label = (node.text ?: node.contentDescription)?.toString()?.trim()?.lowercase()
+            // Solo IDs de anuncio: "skip_forward_icon" del reproductor de Facebook Lite salta 10 s, no el anuncio.
+            val idLooksLikeSkip = node.viewIdResourceName?.lowercase()?.let { SKIP_AD_ID.containsMatchIn(it) } == true
+            if ((label != null && SKIP_LABEL.matches(label)) || (idLooksLikeSkip && node.isClickable)) {
+                found = clickableAncestor(node) ?: node
+            }
+        }
+        return found
+    }
+
+    private fun clickableAncestor(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        var current: AccessibilityNodeInfo? = node
+        repeat(4) {
+            if (current?.isClickable == true) return current
+            current = current?.parent
+        }
+        return null
     }
 
     private fun openApp(pkg: String): String {
@@ -205,6 +249,13 @@ class PulsoControlService : AccessibilityService() {
 
     companion object {
         private const val TAG = "PulsoControl"
+
+        /** "Omitir", "Skip ad", "Saltar anuncio ›", etc. No acepta la cuenta atrás ("Omitir en 5"). */
+        private val SKIP_LABEL =
+            Regex("""^(skip|omitir|saltar)(\s+(ads?|anuncios?|publicidad))?\s*[›>»▶]?$""")
+
+        /** IDs como "skip_ad_button" o "ad_skip"; no "skip_forward_icon". */
+        private val SKIP_AD_ID = Regex("""(^|[/:_])(skip_?ads?|ads?_?skip)(_|$)""")
 
         @Volatile
         var instance: PulsoControlService? = null
