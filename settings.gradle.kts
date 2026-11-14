@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "Pulso"
 
 include(":app")
+include(":mobile")
