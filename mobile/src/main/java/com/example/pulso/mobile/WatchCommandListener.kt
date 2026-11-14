@@ -9,7 +9,7 @@ import com.google.android.gms.wearable.WearableListenerService
 
 /**
  * Recibe las órdenes del reloj y le responde con:
- * `resultado|orden|app en primer plano|volumen multimedia en %`.
+ * `resultado|orden|app en primer plano|volumen multimedia en %|pantalla negra (1/0)`.
  */
 class WatchCommandListener : WearableListenerService() {
 
@@ -26,9 +26,10 @@ class WatchCommandListener : WearableListenerService() {
         }
         val foreground = service?.foregroundPackage.orEmpty()
         val volume = mediaVolumePercent()
-        Log.i(TAG, "Orden '$command' -> $result ($foreground, vol $volume%)")
+        val black = if (service?.blackScreenOn == true) 1 else 0
+        Log.i(TAG, "Orden '$command' -> $result ($foreground, vol $volume%, negra $black)")
 
-        val reply = "$result|$command|$foreground|$volume".toByteArray(Charsets.UTF_8)
+        val reply = "$result|$command|$foreground|$volume|$black".toByteArray(Charsets.UTF_8)
         Wearable.getMessageClient(this)
             .sendMessage(event.sourceNodeId, PulsoProtocol.ACK_PATH, reply)
             .addOnFailureListener { Log.w(TAG, "No se pudo responder al reloj", it) }

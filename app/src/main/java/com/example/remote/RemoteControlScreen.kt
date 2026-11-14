@@ -35,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.OndemandVideo
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SlowMotionVideo
@@ -65,6 +66,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -130,7 +132,11 @@ fun RemoteControlScreen(link: PhoneLink) {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            StatusPill(state)
+            // Arriba la pantalla es más estrecha: botón pequeño + mensaje acortado para que quepan.
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                BlackScreenToggle(on = state.blackScreen) { link.send(PulsoProtocol.CMD_BLACK_SCREEN) }
+                StatusPill(state)
+            }
             Spacer(Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -230,7 +236,27 @@ private fun StatusPill(state: LinkState) {
             color = TextPrimary,
             fontSize = 11.sp,
             maxLines = 1,
-            modifier = Modifier.widthIn(max = 120.dp)
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.widthIn(max = 96.dp)
+        )
+    }
+}
+
+/** Luna: apaga visualmente el teléfono sin impedir que el reloj lo siga controlando. */
+@Composable
+private fun BlackScreenToggle(on: Boolean, onClick: () -> Unit) {
+    PressableCircle(
+        description = if (on) "Quitar pantalla negra del teléfono" else "Pantalla negra en el teléfono",
+        fill = if (on) Modifier.background(CyanPulse) else Modifier.background(WatchSurfaceElevated).border(1.dp, WatchBorder, CircleShape),
+        shape = CircleShape,
+        size = 26.dp,
+        onClick = onClick
+    ) {
+        Icon(
+            Icons.Rounded.DarkMode,
+            contentDescription = null,
+            tint = if (on) WatchBlack else TextPrimary,
+            modifier = Modifier.size(15.dp)
         )
     }
 }

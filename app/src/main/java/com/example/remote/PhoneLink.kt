@@ -32,6 +32,8 @@ object PulsoProtocol {
     const val CMD_VOLUME_UP = "vol_up"
     const val CMD_VOLUME_DOWN = "vol_down"
     const val CMD_SKIP_AD = "skip_ad"
+    /** Activa o desactiva la pantalla negra del teléfono. */
+    const val CMD_BLACK_SCREEN = "black"
     const val CMD_PING = "ping"
 
     const val ACK_OK = "ok"
@@ -53,7 +55,9 @@ data class LinkState(
     /** Volumen multimedia del teléfono (0-100) tras la última orden de volumen. */
     val volumePercent: Int? = null,
     /** Cambia en cada ajuste de volumen para que la UI muestre el indicador. */
-    val volumeEventId: Long = 0L
+    val volumeEventId: Long = 0L,
+    /** El teléfono tiene activa la pantalla negra de Pulso. */
+    val blackScreen: Boolean = false
 )
 
 /** Envía órdenes al teléfono por la Wearable Data Layer y escucha sus respuestas. */
@@ -119,8 +123,16 @@ class PhoneLink(context: Context, private val scope: CoroutineScope) : MessageCl
             null -> null
             else -> "otra app"
         }
+        // Teléfonos con una versión anterior de Pulso no envían este campo: se conserva el último valor.
+        val black = parts.getOrNull(4)?.let { it == "1" } ?: _state.value.blackScreen
         val skippedAd = result == PulsoProtocol.ACK_OK && command == PulsoProtocol.CMD_SKIP_AD
+        val toggledBlack = result == PulsoProtocol.ACK_OK && command == PulsoProtocol.CMD_BLACK_SCREEN
         _state.value = when {
+            toggledBlack -> LinkState(
+                LinkHealth.OK,
+                if (black) "Pantalla negra" else "Pantalla normal",
+                foregroundApp = appName
+            )
             skippedAd -> LinkState(LinkHealth.OK, "Anuncio omitido", foregroundApp = appName)
             result == PulsoProtocol.ACK_AD_NEXT ->
                 LinkState(LinkHealth.OK, "Sin botón: siguiente", foregroundApp = appName)
@@ -139,7 +151,7 @@ class PhoneLink(context: Context, private val scope: CoroutineScope) : MessageCl
             result == PulsoProtocol.ACK_NO_SERVICE -> LinkState(LinkHealth.ERROR, "Activa Pulso en Accesibilidad del teléfono")
             result == PulsoProtocol.ACK_NO_APP -> LinkState(LinkHealth.ERROR, "Esa app no está instalada en el teléfono")
             else -> LinkState(LinkHealth.ERROR, "El teléfono no pudo hacerlo")
-        }
+        }.copy(blackScreen = black)
     }
 
     private fun vibrate() {

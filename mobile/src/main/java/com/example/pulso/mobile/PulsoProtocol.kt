@@ -15,6 +15,8 @@ object PulsoProtocol {
     const val CMD_VOLUME_UP = "vol_up"
     const val CMD_VOLUME_DOWN = "vol_down"
     const val CMD_SKIP_AD = "skip_ad"
+    /** Activa o desactiva la pantalla negra del teléfono. */
+    const val CMD_BLACK_SCREEN = "black"
     const val CMD_PING = "ping"
 
     const val ACK_OK = "ok"
