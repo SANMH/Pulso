@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
-import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -14,25 +13,22 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.WindowManager
 import android.widget.ImageView
-import android.widget.TextView
 import kotlin.math.abs
 
 /**
  * Pantalla negra de Pulso y su botón flotante en el teléfono. Se usa solo desde el hilo principal.
  *
  * - Botón con luna (siempre visible, se puede arrastrar en vertical): un toque pone la pantalla negra.
- * - Con la pantalla negra, cualquier toque muestra "Desbloquear" en el centro durante unos segundos;
- *   tocarlo quita la pantalla negra. Un roce accidental solo hace aparecer el botón.
+ * - Con la pantalla negra, mantener un dedo quieto 3 s en cualquier parte la quita; un anillo
+ *   animado muestra el avance. Con el sensor de proximidad tapado (bolsillo) se ignora todo.
  * - La capa negra bloquea los toques del usuario, pero Facebook / Instagram siguen accesibles
- *   para el servicio, así que el reloj los controla igual. En Android 14+ el servicio además
- *   intercepta la pantalla táctil entera (bordes incluidos) y pasa los toques a [handleTouch].
+ *   para el servicio, así que el reloj los controla igual.
  */
 class BlackScreenOverlay(
     private val context: Context,
@@ -49,15 +45,14 @@ class BlackScreenOverlay(
     private var blackParams: WindowManager.LayoutParams? = null
     private var button: ImageView? = null
     private var buttonParams: WindowManager.LayoutParams? = null
-    private var unlock: TextView? = null
+    /** Anillo de "mantén presionado" mientras el dedo está apoyado. */
+    private var unlock: HoldToUnlockView? = null
     private var isBlack = false
 
-    // Seguimiento de un toque para distinguirlo de un deslizamiento.
+    // Dónde se apoyó el dedo: si se aleja más de [holdSlop] ya no cuenta como mantener.
     private var downX = 0f
     private var downY = 0f
-    private var downMoved = false
-
-    private val hideUnlock = Runnable { removeUnlock() }
+    private val holdSlop = 48 * density
 
     // Sensor de proximidad: tapado (bolsillo, bolso) = se ignora cualquier toque.
     private val sensors = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -67,7 +62,7 @@ class BlackScreenOverlay(
         override fun onSensorChanged(event: SensorEvent) {
             val sensor = proximity ?: return
             covered = event.values[0] < sensor.maximumRange.coerceAtMost(5f)
-            if (covered) removeUnlock()
+            if (covered) cancelHold()
         }
 
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
@@ -111,71 +106,55 @@ class BlackScreenOverlay(
     }
 
     /**
-     * Toques con la pantalla negra (de la propia capa o interceptados por el servicio en toda
-     * la pantalla). Coordenadas absolutas de pantalla.
+     * Toques con la pantalla negra. Para salir hay que mantener un dedo quieto [HOLD_MS]: aparece
+     * un anillo que se llena; soltar, mover el dedo o apoyar un segundo dedo lo cancela.
      */
     fun handleTouch(e: MotionEvent) {
         if (!isBlack) return
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                // En el bolsillo (sensor tapado) los roces no pueden ni empezar a desbloquear.
+                if (covered) {
+                    Log.d(TAG, "Toque ignorado: sensor de proximidad tapado")
+                    return
+                }
                 downX = e.rawX
                 downY = e.rawY
-                downMoved = false
+                startHold(e.rawX, e.rawY)
             }
             MotionEvent.ACTION_MOVE ->
-                if (abs(e.rawX - downX) > touchSlop || abs(e.rawY - downY) > touchSlop) downMoved = true
-            MotionEvent.ACTION_UP -> if (!downMoved) onTap(e.rawX, e.rawY)
+                if (abs(e.rawX - downX) > holdSlop || abs(e.rawY - downY) > holdSlop) cancelHold()
+            MotionEvent.ACTION_POINTER_DOWN,
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_CANCEL -> cancelHold()
         }
     }
 
-    private fun onTap(x: Float, y: Float) {
-        // En el bolsillo los roces no pueden ni mostrar "Desbloquear".
-        if (covered) {
-            Log.d(TAG, "Toque ignorado: sensor de proximidad tapado")
-            return
+    private fun startHold(x: Float, y: Float) {
+        removeUnlock()
+        val width = dp(150)
+        val height = dp(205)
+        val view = HoldToUnlockView(context, HOLD_MS) { onUserRequest(false) }
+        val metrics = context.resources.displayMetrics
+        // El anillo va por encima del dedo para que no lo tape.
+        val params = baseParams(width, height, WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE).apply {
+            gravity = Gravity.TOP or Gravity.START
+            this.x = (x - width / 2f).toInt().coerceIn(0, metrics.widthPixels - width)
+            this.y = (y - height - dp(40)).toInt().coerceIn(0, metrics.heightPixels - height)
         }
-        val target = unlock
-        Log.d(TAG, "Toque en ($x, $y), desbloquear visible=${target != null}")
-        if (target != null && target.screenRect().contains(x.toInt(), y.toInt())) {
-            target.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
-            onUserRequest(false)
-        } else {
-            showUnlock()
+        if (add(view, params)) {
+            unlock = view
+            view.start()
         }
     }
 
-    private fun showUnlock() {
-        handler.removeCallbacks(hideUnlock)
-        if (unlock == null) {
-            val view = TextView(context).apply {
-                text = "Desbloquear"
-                setTextColor(Color.WHITE)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
-                gravity = Gravity.CENTER
-                setPadding(dp(36), dp(18), dp(36), dp(18))
-                setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_pulso_lock_open, 0, 0, 0)
-                compoundDrawablePadding = dp(12)
-                background = GradientDrawable().apply {
-                    cornerRadius = dp(32).toFloat()
-                    setColor(0xFF2A2A2A.toInt())
-                    setStroke(dp(1), 0xFF555555.toInt())
-                }
-                contentDescription = "Desbloquear pantalla"
-            }
-            // Los toques llegan por la capa negra; por si acaso el botón también los atiende.
-            view.setOnClickListener { if (!covered) onUserRequest(false) }
-            val params = baseParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                0
-            ).apply { gravity = Gravity.CENTER }
-            if (add(view, params)) unlock = view
-        }
-        handler.postDelayed(hideUnlock, UNLOCK_VISIBLE_MS)
+    private fun cancelHold() {
+        val view = unlock ?: return
+        unlock = null
+        view.cancel { remove(view) }
     }
 
     private fun removeUnlock() {
-        handler.removeCallbacks(hideUnlock)
         unlock?.let { remove(it) }
         unlock = null
     }
@@ -251,7 +230,7 @@ class BlackScreenOverlay(
         if (isBlack) {
             view.setImageResource(R.drawable.ic_pulso_lock)
             view.alpha = 0.35f
-            view.contentDescription = "Toca para mostrar Desbloquear"
+            view.contentDescription = "Mantén presionada la pantalla 3 segundos para desbloquear"
         } else {
             view.setImageResource(R.drawable.ic_pulso_moon)
             view.alpha = 0.85f
@@ -324,18 +303,12 @@ class BlackScreenOverlay(
         runCatching { wm.removeView(view) }
     }
 
-    private fun View.screenRect(): Rect {
-        val loc = IntArray(2).also { getLocationOnScreen(it) }
-        // Margen extra para que sea fácil acertar con el dedo.
-        val pad = dp(12)
-        return Rect(loc[0] - pad, loc[1] - pad, loc[0] + width + pad, loc[1] + height + pad)
-    }
-
     private fun dp(value: Int) = (value * density).toInt()
 
     companion object {
         private const val TAG = "PulsoOverlay"
         private const val KEY_Y = "button_y"
-        private const val UNLOCK_VISIBLE_MS = 3_000L
+        /** Tiempo que hay que mantener el dedo para salir de la pantalla negra. */
+        private const val HOLD_MS = 3_000L
     }
 }
