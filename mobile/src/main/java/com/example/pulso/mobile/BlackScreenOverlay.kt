@@ -6,6 +6,10 @@ import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -55,6 +59,29 @@ class BlackScreenOverlay(
 
     private val hideUnlock = Runnable { removeUnlock() }
 
+    // Sensor de proximidad: tapado (bolsillo, bolso) = se ignora cualquier toque.
+    private val sensors = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    private val proximity: Sensor? = sensors.getDefaultSensor(Sensor.TYPE_PROXIMITY)
+    private var covered = false
+    private val proximityListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) {
+            val sensor = proximity ?: return
+            covered = event.values[0] < sensor.maximumRange.coerceAtMost(5f)
+            if (covered) removeUnlock()
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+    }
+
+    private fun watchProximity(on: Boolean) {
+        val sensor = proximity ?: return
+        if (on) sensors.registerListener(proximityListener, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+        else {
+            sensors.unregisterListener(proximityListener)
+            covered = false
+        }
+    }
+
     val isBlackShown: Boolean get() = black != null
 
     fun start() {
@@ -62,6 +89,7 @@ class BlackScreenOverlay(
     }
 
     fun stop() {
+        watchProximity(false)
         removeUnlock()
         removeBlack()
         removeButton()
@@ -69,6 +97,7 @@ class BlackScreenOverlay(
 
     fun setBlack(on: Boolean) {
         isBlack = on
+        watchProximity(on)
         if (on) {
             addBlack()
             // Las capas del mismo tipo se apilan por orden de llegada: el botón debe ir encima.
@@ -100,6 +129,11 @@ class BlackScreenOverlay(
     }
 
     private fun onTap(x: Float, y: Float) {
+        // En el bolsillo los roces no pueden ni mostrar "Desbloquear".
+        if (covered) {
+            Log.d(TAG, "Toque ignorado: sensor de proximidad tapado")
+            return
+        }
         val target = unlock
         Log.d(TAG, "Toque en ($x, $y), desbloquear visible=${target != null}")
         if (target != null && target.screenRect().contains(x.toInt(), y.toInt())) {
@@ -128,8 +162,8 @@ class BlackScreenOverlay(
                 }
                 contentDescription = "Desbloquear pantalla"
             }
-            // Sin servicio interceptando (Android < 14) el botón recibe el toque directamente.
-            view.setOnClickListener { onUserRequest(false) }
+            // Los toques llegan por la capa negra; por si acaso el botón también los atiende.
+            view.setOnClickListener { if (!covered) onUserRequest(false) }
             val params = baseParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,

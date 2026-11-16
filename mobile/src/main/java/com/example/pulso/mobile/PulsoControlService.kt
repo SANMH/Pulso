@@ -62,9 +62,15 @@ class PulsoControlService : AccessibilityService() {
         Log.i(TAG, "Servicio de control conectado")
     }
 
+    /** App social que se estaba escuchando al poner la pantalla negra; se mantiene al frente. */
+    @Volatile
+    private var keepInFront: String? = null
+    private val bringBack = Runnable { returnToSocialApp() }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val pkg = event.packageName?.toString() ?: return
+            if (blackScreenOn) guardForeground(pkg)
             // Ignora el teclado, la UI del sistema y la propia capa negra para no perder la app real.
             if (pkg != "com.android.systemui" && pkg != packageName &&
                 !pkg.contains("inputmethod") && !pkg.contains("honeyboard")
@@ -83,9 +89,49 @@ class PulsoControlService : AccessibilityService() {
         super.onDestroy()
     }
 
+    /**
+     * Con la pantalla negra, un roce en el bolsillo puede disparar un gesto del sistema (inicio,
+     * recientes, cortina) que ninguna capa puede impedir. Si la app que se escuchaba deja de estar
+     * al frente, se cierra la cortina y se la vuelve a traer. Llamadas y alarmas ganan: se quita
+     * la pantalla negra y no se interfiere.
+     */
+    private fun guardForeground(pkg: String) {
+        val target = keepInFront ?: return
+        when {
+            pkg == target || pkg == packageName -> main.removeCallbacks(bringBack)
+            PRIORITY_APPS.any { pkg.contains(it) } -> {
+                Log.i(TAG, "Llamada o alarma ($pkg): se quita la pantalla negra")
+                setBlackScreen(false)
+                notifyWatch()
+            }
+            pkg.contains("inputmethod") || pkg.contains("honeyboard") -> Unit
+            else -> {
+                // Pequeña espera: la animación del gesto termina antes de volver.
+                main.removeCallbacks(bringBack)
+                main.postDelayed(bringBack, 350)
+            }
+        }
+    }
+
+    private fun returnToSocialApp() {
+        val target = keepInFront ?: return
+        if (!blackScreenOn) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            performGlobalAction(GLOBAL_ACTION_DISMISS_NOTIFICATION_SHADE)
+        }
+        if (socialRoot(target) != null && rootInActiveWindow?.packageName == target) return
+        Log.i(TAG, "Algo sacó a $target del frente: vuelvo a traerla")
+        openApp(target)
+    }
+
     /** Pantalla negra de Pulso: ver [BlackScreenOverlay]. */
     private fun setBlackScreen(on: Boolean) {
         blackScreenOn = on
+        keepInFront = if (on) {
+            foregroundPackage?.takeIf { it in SOCIAL_PACKAGES }
+                ?: socialRoot()?.packageName?.toString()
+        } else null
+        if (!on) main.removeCallbacks(bringBack)
         main.post {
             if (::overlay.isInitialized) overlay.setBlack(on)
             interceptTouchscreen(on)
@@ -456,6 +502,9 @@ class PulsoControlService : AccessibilityService() {
         private val SKIP_AD_ID = Regex("""(^|[/:_])(skip_?ads?|ads?_?skip)(_|$)""")
 
         private val SOCIAL_PACKAGES = setOf(PulsoProtocol.PKG_FACEBOOK, PulsoProtocol.PKG_INSTAGRAM)
+
+        /** Apps que nunca se tapan ni se echan del frente: llamadas y alarmas. */
+        private val PRIORITY_APPS = listOf("incallui", "dialer", "telecom", "clockpackage", "deskclock", "alarm")
 
         /** Flechas de la propia app: "Siguiente video", "Next", "Video anterior"… */
         private val NEXT_LABEL = Regex("""^((ver\s+)?(el\s+)?(siguiente|próximo)(\s+(video|vídeo|reel))?|(video|vídeo)\s+siguiente|next(\s+(video|reel))?)$""")
