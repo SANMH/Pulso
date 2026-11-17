@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pulso — control desde el reloj</title>
+<meta name="description" content="Pulso es una app gratuita y de código abierto para controlar Facebook Lite e Instagram del teléfono desde un reloj con Wear OS. Descárgala y sigue los pasos para instalarla.">
+<meta property="og:title" content="Pulso — control desde el reloj">
+<meta property="og:description" content="Pasa videos de Facebook Lite e Instagram, sube el volumen y apaga la pantalla del teléfono desde tu reloj Wear OS.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%230e7490'/%3E%3Cpath d='M10 34h12l5-12 8 22 6-14h13' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --surface-2: #eef1f5;
+    --text: #0f172a;
+    --muted: #475569;
+    --border: #dbe1e8;
+    --accent: #0e7490;
+    --accent-strong: #155e75;
+    --accent-soft: #e0f2f7;
+    --warn-bg: #fff7e6;
+    --warn-border: #f0c36d;
+    --code-bg: #eef1f5;
+    --shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 4px 16px rgba(15, 23, 42, .06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1017;
+      --surface: #121a24;
+      --surface-2: #18222f;
+      --text: #e6edf5;
+      --muted: #9fb0c3;
+      --border: #263243;
+      --accent: #22d3ee;
+      --accent-strong: #67e8f9;
+      --accent-soft: #0f2a33;
+      --warn-bg: #2a2110;
+      --warn-border: #7a5a1c;
+      --code-bg: #18222f;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b1017;
+    --surface: #121a24;
+    --surface-2: #18222f;
+    --text: #e6edf5;
+    --muted: #9fb0c3;
+    --border: #263243;
+    --accent: #22d3ee;
+    --accent-strong: #67e8f9;
+    --accent-soft: #0f2a33;
+    --warn-bg: #2a2110;
+    --warn-border: #7a5a1c;
+    --code-bg: #18222f;
+    --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  a { color: var(--accent-strong); }
+  :root:not([data-theme="dark"]) a { color: var(--accent); }
+  img { max-width: 100%; display: block; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 16px; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  header.top .wrap { display: flex; align-items: center; gap: 16px; height: 56px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; color: var(--text); text-decoration: none; }
+  .brand svg { width: 28px; height: 28px; }
+  nav.links { margin-left: auto; display: flex; gap: 18px; font-size: 15px; }
+  nav.links a { color: var(--muted); text-decoration: none; }
+  nav.links a:hover { color: var(--text); }
+  @media (max-width: 640px) { nav.links .opt { display: none; } }
+
+  .hero { padding: 56px 0 32px; display: grid; grid-template-columns: 1.2fr .8fr; gap: 40px; align-items: center; }
+  @media (max-width: 760px) { .hero { grid-template-columns: 1fr; padding-top: 36px; gap: 28px; } }
+  .eyebrow { display: inline-block; font-size: 13px; font-weight: 600; letter-spacing: .02em; color: var(--accent-strong); background: var(--accent-soft); border-radius: 999px; padding: 4px 12px; }
+  :root:not([data-theme="dark"]) .eyebrow { color: var(--accent); }
+  h1 { font-size: clamp(32px, 5vw, 46px); line-height: 1.1; margin: 14px 0 14px; letter-spacing: -.02em; }
+  .lead { font-size: 19px; color: var(--muted); margin: 0 0 26px; }
+  .dl { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 12px 18px; border-radius: 12px; font-weight: 600; text-decoration: none;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    min-height: 48px;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  :root[data-theme="dark"] .btn.primary { color: #062a33; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #062a33; } }
+  .btn:hover { filter: brightness(1.05); }
+  .btn small { font-weight: 500; opacity: .8; }
+  .btn svg { width: 20px; height: 20px; flex: none; }
+  a.btn, a.btn:visited { color: var(--text); }
+  a.btn.primary, a.btn.primary:visited { color: #fff; }
+  :root[data-theme="dark"] a.btn.primary { color: #062a33; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) a.btn.primary { color: #062a33; } }
+  .fine { font-size: 14px; color: var(--muted); margin-top: 14px; }
+
+  .watches { display: flex; gap: 18px; justify-content: center; }
+  .watch {
+    width: min(46%, 200px); aspect-ratio: 1; border-radius: 50%; overflow: hidden;
+    border: 10px solid #1f2937; box-shadow: 0 0 0 2px #374151, var(--shadow); background: #000;
+  }
+  .watch img { width: 100%; height: 100%; object-fit: cover; }
+  .caption { text-align: center; font-size: 13px; color: var(--muted); margin-top: 10px; }
+
+  section { padding: 40px 0; border-top: 1px solid var(--border); }
+  h2 { font-size: 28px; margin: 0 0 8px; letter-spacing: -.01em; }
+  h3 { font-size: 20px; margin: 28px 0 10px; }
+  .sub { color: var(--muted); margin: 0 0 22px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); }
+  .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+
+  ul.req { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  ul.req li { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px 12px 46px; position: relative; }
+  ul.req li::before { content: "✓"; position: absolute; left: 16px; top: 12px; color: var(--accent); font-weight: 700; }
+
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  ol.steps > li { counter-increment: s; position: relative; padding: 14px 16px 14px 60px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+  ol.steps > li::before {
+    content: counter(s); position: absolute; left: 16px; top: 14px;
+    width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--accent-soft); color: var(--accent-strong); font-weight: 700; font-size: 15px;
+  }
+  :root:not([data-theme="dark"]) ol.steps > li::before { color: var(--accent); }
+  ol.steps > li strong:first-child { display: block; margin-bottom: 2px; }
+  ol.steps p { margin: 4px 0 0; color: var(--muted); font-size: 15.5px; }
+
+  .tabs { display: flex; gap: 8px; margin: 6px 0 16px; flex-wrap: wrap; }
+  .tab { appearance: none; border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 10px 14px; border-radius: 999px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; min-height: 44px; }
+  .tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  :root[data-theme="dark"] .tab[aria-selected="true"] { color: #062a33; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tab[aria-selected="true"] { color: #062a33; } }
+  [role="tabpanel"][hidden] { display: none; }
+
+  .note { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 8px; margin: 14px 0; font-size: 15.5px; }
+  .warn { border-left: 4px solid var(--warn-border); background: var(--warn-bg); padding: 12px 16px; border-radius: 8px; margin: 14px 0; font-size: 15.5px; }
+  code, kbd { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .9em; background: var(--code-bg); padding: 2px 6px; border-radius: 6px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); padding: 12px 14px; border-radius: 10px; overflow-x: auto; font-size: 14px; margin: 8px 0 0; }
+  pre code { background: none; padding: 0; }
+  .path { font-weight: 600; }
+
+  details { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0 16px; margin-bottom: 10px; }
+  summary { cursor: pointer; font-weight: 600; padding: 14px 0; list-style: none; position: relative; padding-right: 28px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; position: absolute; right: 0; top: 12px; font-size: 22px; color: var(--muted); }
+  details[open] summary::after { content: "–"; }
+  details > *:not(summary) { margin-top: 0; }
+  details > p, details > ol, details > ul { color: var(--muted); font-size: 15.5px; }
+  details > :last-child { padding-bottom: 14px; margin-bottom: 0; }
+
+  table.hash { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.hash td { padding: 8px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.hash td:last-child { font-family: ui-monospace, Consolas, monospace; word-break: break-all; color: var(--muted); }
+
+  .legal p, .legal li { color: var(--muted); font-size: 15px; }
+  .legal h3 { font-size: 17px; color: var(--text); }
+
+  footer { border-top: 1px solid var(--border); padding: 28px 0 40px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 10px 24px; justify-content: space-between; }
+  .theme-toggle { appearance: none; background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="currentColor" style="color: var(--accent)"/><path d="M10 34h12l5-12 8 22 6-14h13" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Pulso
+    </a>
+    <nav class="links" aria-label="Secciones">
+      <a href="#instalar">Instalar</a>
+      <a class="opt" href="#problemas">Ayuda</a>
+      <a class="opt" href="#privacidad">Privacidad</a>
+      <a href="#legal">Legal</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <div>
+      <span class="eyebrow">Gratis · Código abierto · Sin anuncios</span>
+      <h1>Controla Facebook Lite e Instagram desde tu reloj</h1>
+      <p class="lead">Pasa videos, abre los Reels, sube el volumen o apaga la pantalla del teléfono sin sacarlo del bolsillo. Pulso convierte tu reloj con Wear OS en un control remoto.</p>
+      <div class="dl" id="descargar">
+        <a class="btn primary" href="https://github.com/SANMH/Pulso/releases/latest/download/pulso-telefono.apk">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg>
+          <span>App para el teléfono <small>· 3,8 MB</small></span>
+        </a>
+        <a class="btn" href="https://github.com/SANMH/Pulso/releases/latest/download/pulso-reloj.apk">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M9 6l1-4h4l1 4M9 18l1 4h4l1-4M12 10v2l1 1"/></svg>
+          <span>App para el reloj <small>· 21 MB</small></span>
+        </a>
+      </div>
+      <p class="fine">Versión 1.0.0 · Necesitas las <strong>dos</strong> apps: una en el teléfono y otra en el reloj. <a href="https://github.com/SANMH/Pulso/releases">Todas las versiones</a></p>
+    </div>
+    <div>
+      <div class="watches">
+        <div class="watch"><img src="img/reloj-control.png" alt="Pantalla de Pulso en el reloj: botones de Facebook, Instagram, sus videos, flechas para pasar publicaciones, volumen, atrás y omitir anuncio" width="480" height="480"></div>
+        <div class="watch"><img src="img/reloj-widget.png" alt="Widget de Pulso en el reloj con botones rápidos: videos, pantalla negra, anterior, siguiente y volumen" width="480" height="480"></div>
+      </div>
+      <p class="caption">La app y su widget en un Galaxy Watch</p>
+    </div>
+  </div>
+
+  <section id="funciones">
+    <h2>Qué puedes hacer</h2>
+    <p class="sub">Todo desde la muñeca, con el teléfono guardado.</p>
+    <div class="grid">
+      <div class="card"><h3>Pasar publicaciones y videos</h3><p>Siguiente y anterior con un toque, deslizando en la pantalla o girando el bisel.</p></div>
+      <div class="card"><h3>Ir directo a los videos</h3><p>Abre la sección de video de Facebook Lite o los Reels de Instagram.</p></div>
+      <div class="card"><h3>Volumen y omitir anuncio</h3><p>Sube o baja el volumen del teléfono y salta un anuncio cuando aparece el botón.</p></div>
+      <div class="card"><h3>Pantalla negra</h3><p>Apaga la imagen del teléfono para ahorrar batería y evitar toques en el bolsillo, mientras el video sigue sonando.</p></div>
+      <div class="card"><h3>Widget en el reloj</h3><p>Desliza desde la esfera y usa los botones rápidos sin abrir la app.</p></div>
+      <div class="card"><h3>Privado</h3><p>Sin cuentas, sin anuncios y sin servidores: el reloj solo habla con tu teléfono.</p></div>
+    </div>
+  </section>
+
+  <section id="requisitos">
+    <h2>Qué necesitas</h2>
+    <p class="sub">Revisa esto antes de empezar.</p>
+    <ul class="req">
+      <li><strong>Un teléfono Android 8 o más reciente</strong> con Facebook Lite, Instagram o ambas instaladas. Pulso funciona con <strong>Facebook Lite</strong>, no con la app normal de Facebook.</li>
+      <li><strong>Un reloj con Wear OS</strong> ya vinculado a ese teléfono, por ejemplo con Galaxy Wearable o la app de Pixel Watch. Probado en Galaxy Watch8; debería funcionar en relojes con Wear OS 3 o posterior.</li>
+      <li><strong>El reloj y el teléfono en la misma red Wi-Fi</strong>, solo durante la instalación en el reloj.</li>
+      <li><strong>Unos 15 minutos</strong>. La parte del teléfono es sencilla. La del reloj tiene más pasos porque los relojes no permiten instalar archivos directamente.</li>
+    </ul>
+  </section>
+
+  <section id="instalar">
+    <h2>Instalación paso a paso</h2>
+    <p class="sub">Primero el teléfono y después el reloj. Los nombres de los menús pueden cambiar un poco según la marca.</p>
+
+    <h3>Parte 1 · En el teléfono</h3>
+    <ol class="steps">
+      <li><strong>Descarga la app del teléfono</strong>
+        <p>Desde el teléfono, abre esta página y toca <a href="https://github.com/SANMH/Pulso/releases/latest/download/pulso-telefono.apk">App para el teléfono</a>. Se descargará el archivo <code>pulso-telefono.apk</code>.</p></li>
+      <li><strong>Ábrela y permite la instalación</strong>
+        <p>Toca la descarga terminada. Si Android dice que no puede instalar apps de esta fuente, toca <span class="path">Ajustes</span>, activa <span class="path">Permitir de esta fuente</span>, vuelve y toca <span class="path">Instalar</span>.</p>
+        <p>Si Google Play Protect muestra una advertencia, toca <span class="path">Más detalles → Instalar de todas formas</span>. El aviso aparece porque la app no viene de Play Store, no porque se haya detectado algo dañino.</p></li>
+      <li><strong>Abre Pulso en el teléfono</strong>
+        <p>Verás si el control está activado y si encuentra tu reloj. Toca <span class="path">Activar Pulso en Accesibilidad</span>.</p></li>
+      <li><strong>Activa el servicio de accesibilidad</strong>
+        <p>En <span class="path">Accesibilidad → Aplicaciones instaladas</span>, toca <span class="path">Pulso: control desde el reloj</span>, actívalo y acepta. Este permiso es lo que deja a Pulso tocar y desplazar la pantalla por ti. Más abajo se explica <a href="#privacidad">qué hace y qué no hace</a>.</p>
+        <div class="warn"><strong>¿La opción aparece en gris o dice "Configuración restringida"?</strong> En Android 13 o más reciente pasa con apps instaladas fuera de Play Store. Ve a <span class="path">Ajustes → Aplicaciones → Pulso</span>, toca los <span class="path">⋮ tres puntos</span> de arriba a la derecha y elige <span class="path">Permitir configuración restringida</span>. Después vuelve a este paso.</div></li>
+      <li><strong>Comprueba que todo está bien</strong>
+        <p>De vuelta en Pulso deberías ver <strong>✓ Control activado</strong>. También aparecerá un pequeño botón con una luna en el borde de la pantalla: es la pantalla negra, y puedes moverlo arrastrándolo.</p></li>
+    </ol>
+
+    <h3>Parte 2 · En el reloj</h3>
+    <p class="sub" style="margin-bottom:14px">Los relojes no tienen navegador ni gestor de archivos, así que la app se instala desde el teléfono o desde una computadora, por la red Wi-Fi. Esto se hace una sola vez.</p>
+
+    <ol class="steps">
+      <li><strong>Activa el modo desarrollador del reloj</strong>
+        <p>En el reloj ve a <span class="path">Ajustes → Acerca del reloj → Software</span> y toca <span class="path">Versión de software</span> 5 a 7 veces, hasta que diga que el modo desarrollador está activado. En otros relojes se llama <span class="path">Número de compilación</span> y está en <span class="path">Ajustes → Sistema → Acerca de</span>.</p></li>
+      <li><strong>Activa la depuración inalámbrica</strong>
+        <p>En <span class="path">Ajustes → Opciones de desarrollador</span>, activa <span class="path">Depuración ADB</span> y luego <span class="path">Depuración inalámbrica</span> (o <span class="path">Depurar por Wi-Fi</span>). Anota la <strong>dirección IP y el puerto</strong> que aparecen, por ejemplo <code>192.168.1.50:5555</code>.</p></li>
+      <li><strong>Instala la app del reloj, eligiendo un método</strong>
+        <div class="tabs" role="tablist" aria-label="Método de instalación">
+          <button class="tab" role="tab" id="tab-a" aria-controls="panel-a" aria-selected="true">Desde el teléfono (más fácil)</button>
+          <button class="tab" role="tab" id="tab-b" aria-controls="panel-b" aria-selected="false" tabindex="-1">Desde una computadora</button>
+        </div>
+        <div role="tabpanel" id="panel-a" aria-labelledby="tab-a">
+          <p>Usa una app instaladora para relojes, gratuita en Google Play, como <strong>Wear Installer 2</strong> o <strong>Bugjaeger</strong>. Son apps de terceros, sin relación con Pulso.</p>
+          <ol>
+            <li>En el teléfono, descarga <a href="https://github.com/SANMH/Pulso/releases/latest/download/pulso-reloj.apk"><code>pulso-reloj.apk</code></a>.</li>
+            <li>Abre la app instaladora y escribe la dirección IP y el puerto del reloj.</li>
+            <li>Si te pide un <strong>código de vinculación</strong>, en el reloj toca <span class="path">Depuración inalámbrica → Vincular dispositivo nuevo</span> e ingresa el código y el puerto que muestra.</li>
+            <li>Acepta el aviso <span class="path">¿Permitir depuración?</span> que aparece en el reloj.</li>
+            <li>Elige el archivo <code>pulso-reloj.apk</code> e instálalo. Tarda menos de un minuto.</li>
+          </ol>
+        </div>
+        <div role="tabpanel" id="panel-b" aria-labelledby="tab-b" hidden>
+          <p>Necesitas las <a href="https://developer.android.com/tools/releases/platform-tools?hl=es-419">herramientas de plataforma de Android</a>, gratuitas y oficiales de Google. Descomprímelas, abre una terminal en esa carpeta y descarga <a href="https://github.com/SANMH/Pulso/releases/latest/download/pulso-reloj.apk"><code>pulso-reloj.apk</code></a> en la misma carpeta.</p>
+          <ol>
+            <li>En el reloj, toca <span class="path">Depuración inalámbrica → Vincular dispositivo nuevo</span>. Usa la IP, el puerto y el código que aparecen:
+              <pre><code>adb pair IP:PUERTO-DE-VINCULACIÓN</code></pre></li>
+            <li>Conéctate con la IP y el puerto principales de la pantalla de depuración inalámbrica:
+              <pre><code>adb connect IP:PUERTO</code></pre></li>
+            <li>Instala la app:
+              <pre><code>adb install pulso-reloj.apk</code></pre>
+              Debe responder <code>Success</code>.</li>
+          </ol>
+        </div></li>
+      <li><strong>Apaga la depuración</strong>
+        <p>Cuando termines, desactiva <span class="path">Depuración ADB</span> en el reloj. Así ahorras batería y nadie más puede conectarse a él.</p></li>
+    </ol>
+
+    <h3>Parte 3 · A usarlo</h3>
+    <ol class="steps">
+      <li><strong>Abre Pulso en el reloj</strong>
+        <p>Arriba verás el estado. <strong>"Teléfono listo"</strong> o <strong>"En Facebook / En Instagram"</strong> indica que todo funciona.</p></li>
+      <li><strong>Toca un botón</strong>
+        <p>Los botones de colores abren Facebook Lite o Instagram, y los de abajo de cada uno van directo a los videos. Usa las flechas, desliza o gira el bisel para pasar publicaciones.</p></li>
+      <li><strong>Agrega el widget (opcional)</strong>
+        <p>Mantén presionada la esfera del reloj o desliza hacia la izquierda hasta el final, toca <span class="path">+ Agregar</span> y elige <span class="path">Pulso: control rápido</span>.</p></li>
+    </ol>
+  </section>
+
+  <section id="problemas">
+    <h2>Problemas frecuentes</h2>
+    <p class="sub">Toca una pregunta para ver la respuesta.</p>
+
+    <details>
+      <summary>El reloj dice "El teléfono no responde"</summary>
+      <p>Revisa que la app de Pulso esté instalada en el teléfono, que el reloj esté conectado al teléfono (por ejemplo, que recibas notificaciones) y que tengas las dos apps de la <strong>misma versión</strong> de esta página.</p>
+    </details>
+    <details>
+      <summary>El reloj dice "Activa Pulso en Accesibilidad del teléfono"</summary>
+      <p>El servicio se apagó, algo que algunos teléfonos hacen tras actualizar o para ahorrar batería. Repite el paso 4 de la Parte 1. Si se apaga seguido, en <span class="path">Ajustes → Batería</span> pon Pulso como app sin restricciones.</p>
+    </details>
+    <details>
+      <summary>"Configuración restringida" o la opción de accesibilidad está en gris</summary>
+      <p>Ve a <span class="path">Ajustes → Aplicaciones → Pulso → ⋮ → Permitir configuración restringida</span> y vuelve a intentarlo. Lo explicamos en el paso 4 de la Parte 1.</p>
+    </details>
+    <details>
+      <summary>"No se instaló la app" o "el paquete entra en conflicto"</summary>
+      <p>Ya tienes otra versión de Pulso firmada de forma distinta, por ejemplo una que compilaste tú. Desinstálala primero en ese dispositivo y vuelve a instalar la de esta página. Las dos apps, teléfono y reloj, deben venir del mismo lugar, o no podrán comunicarse.</p>
+    </details>
+    <details>
+      <summary>Los botones de video no abren la sección correcta</summary>
+      <p>Facebook Lite e Instagram cambian su diseño con frecuencia y eso puede afectar estos atajos. Actualiza Pulso cuando haya una versión nueva. Si sigue fallando, <a href="https://github.com/SANMH/Pulso/issues">avísanos aquí</a>.</p>
+    </details>
+    <details>
+      <summary>¿Cómo quito la pantalla negra?</summary>
+      <p>Toca la luna en el reloj o, en el teléfono, mantén el dedo quieto sobre la pantalla 3 segundos hasta que se llene el anillo. Si el teléfono está tapado (bolsillo o bolso), se ignoran los toques a propósito.</p>
+    </details>
+    <details>
+      <summary>¿Cómo desinstalo Pulso?</summary>
+      <p>En el teléfono, desinstálalo como cualquier app. En el reloj, mantén presionado el ícono de Pulso en la lista de apps y elige <span class="path">Desinstalar</span>.</p>
+    </details>
+  </section>
+
+  <section id="privacidad">
+    <h2>Privacidad y permisos</h2>
+    <p class="sub">Qué hace Pulso con tu teléfono, en palabras simples.</p>
+    <div class="grid">
+      <div class="card"><h3>No recopila datos</h3><p>No hay cuentas, analíticas ni anuncios. Pulso no se conecta a ningún servidor. Las órdenes viajan solo entre tu reloj y tu teléfono, por la conexión de Wear OS.</p></div>
+      <div class="card"><h3>Accesibilidad</h3><p>La usa para tocar y desplazar la pantalla por ti y saber qué app está abierta. Busca solo los botones que necesita (pestañas de video, omitir anuncio) y no guarda ni envía lo que hay en pantalla.</p></div>
+      <div class="card"><h3>Lo que nunca hace</h3><p>No da "me gusta", no comenta, no publica, no sigue cuentas y no lee tus mensajes ni tus contraseñas.</p></div>
+      <div class="card"><h3>Otros permisos</h3><p>Vibración para confirmar los toques. Superposición y sensor de proximidad para la pantalla negra. Mantener la pantalla activa al pasar videos. Control del volumen multimedia.</p></div>
+    </div>
+    <p class="fine">¿Quieres comprobarlo? El <a href="https://github.com/SANMH/Pulso">código fuente completo</a> es público.</p>
+  </section>
+
+  <section id="verificar">
+    <h2>Verificar las descargas</h2>
+    <p class="sub">Opcional, para usuarios avanzados. Descarga Pulso solo desde esta página o desde <a href="https://github.com/SANMH/Pulso/releases">GitHub</a>. Puedes comparar la huella SHA-256 de la versión 1.0.0:</p>
+    <table class="hash">
+      <tr><td>pulso-telefono.apk</td><td>bfd986f94c530c63dcfecb16ab0c59175c9bc5cd048090777ba48f222bc30f33</td></tr>
+      <tr><td>pulso-reloj.apk</td><td>1273d726c3ae6ea05140e840b1810ba328909319abe063411870f918d5e3f60c</td></tr>
+    </table>
+  </section>
+
+  <section id="legal" class="legal">
+    <h2>Avisos legales</h2>
+
+    <h3>Proyecto independiente y no oficial</h3>
+    <p>Pulso es un proyecto personal de código abierto. <strong>No está afiliado, patrocinado, respaldado ni aprobado por Meta Platforms, Inc., Google LLC ni Samsung Electronics.</strong> Facebook, Facebook Lite e Instagram son marcas de Meta Platforms, Inc. Android y Wear OS son marcas de Google LLC. Galaxy Watch es una marca de Samsung Electronics. Estos nombres se mencionan solo para indicar con qué funciona Pulso.</p>
+
+    <h3>Sin garantía</h3>
+    <p>Pulso se distribuye gratis bajo la <a href="https://github.com/SANMH/Pulso/blob/main/LICENSE">licencia MIT</a>, <strong>"tal cual", sin garantías de ningún tipo</strong>, expresas o implícitas, incluidas las de funcionamiento, comerciabilidad o idoneidad para un propósito particular. Los autores no son responsables de ningún daño, pérdida de datos, fallo del dispositivo, cargo de datos móviles, restricción o suspensión de cuentas, ni de cualquier otro perjuicio derivado de instalar o usar la app, en la medida que lo permita la ley aplicable.</p>
+
+    <h3>Uso responsable y términos de terceros</h3>
+    <p>Pulso automatiza toques y desplazamientos en apps de terceros mediante el servicio de accesibilidad de Android. Los términos de servicio de esas plataformas pueden limitar el uso de herramientas automatizadas o de terceros, incluida la función de omitir anuncios. <strong>Eres responsable de revisar y cumplir esos términos, y de cómo usas Pulso.</strong> Úsalo solo con tus propias cuentas y dispositivos. No lo uses mientras conduces ni en situaciones en las que distraerte sea peligroso.</p>
+
+    <h3>Instalación fuera de las tiendas oficiales</h3>
+    <p>Estas apps no se distribuyen por Google Play. Instalar apps de fuera de las tiendas oficiales y activar el modo desarrollador tiene riesgos de seguridad: hazlo solo con archivos de esta página y desactiva la depuración al terminar. Estas versiones están firmadas con una llave de desarrollo del proyecto, no por Google.</p>
+
+    <h3>Licencia y código fuente</h3>
+    <p>El código está disponible en <a href="https://github.com/SANMH/Pulso">github.com/SANMH/Pulso</a> bajo la licencia MIT. Puedes usarlo, copiarlo, modificarlo y distribuirlo, siempre que conserves el aviso de copyright y de licencia. Copyright © 2026 SANMH.</p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Pulso · Código abierto bajo licencia MIT · © 2026 SANMH</span>
+    <span>
+      <a href="https://github.com/SANMH/Pulso">Código fuente</a> ·
+      <a href="https://github.com/SANMH/Pulso/issues">Reportar un problema</a> ·
+      <button class="theme-toggle" type="button" id="theme">Cambiar tema</button>
+    </span>
+  </div>
+</footer>
+
+<script>
+  // Pestañas del método de instalación en el reloj.
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+    function select(tab) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        t.tabIndex = on ? 0 : -1;
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      });
+    }
+    tabs.forEach(function (t, i) {
+      t.addEventListener('click', function () { select(t); });
+      t.addEventListener('keydown', function (e) {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        var next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+        select(next); next.focus();
+      });
+    });
+  })();
+
+  // Tema claro / oscuro (recuerda la elección si el navegador lo permite).
+  (function () {
+    var root = document.documentElement;
+    try { var saved = localStorage.getItem('pulso-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+    document.getElementById('theme').addEventListener('click', function () {
+      var current = root.getAttribute('data-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      var next = current === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('pulso-theme', next); } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>
