@@ -41,6 +41,9 @@ googleServices = "4.5.0"
 credentials = "1.5.0"
 googleid = "1.1.1"
 playServicesWearable = "19.0.0"
+wearTiles = "1.4.1"
+wearProtolayout = "1.2.1"
+concurrentFutures = "1.2.0"
 
 
 [libraries]
@@ -98,6 +101,9 @@ googleid = { group = "com.google.android.libraries.identity.googleid", name = "g
 
 
 play-services-wearable = { group = "com.google.android.gms", name = "play-services-wearable", version.ref = "playServicesWearable" }
+androidx-wear-tiles = { group = "androidx.wear.tiles", name = "tiles", version.ref = "wearTiles" }
+androidx-wear-protolayout = { group = "androidx.wear.protolayout", name = "protolayout", version.ref = "wearProtolayout" }
+androidx-concurrent-futures = { group = "androidx.concurrent", name = "concurrent-futures", version.ref = "concurrentFutures" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutinesCore" }
 
 [plugins]
