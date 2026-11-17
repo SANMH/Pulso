@@ -14,7 +14,7 @@ android {
 
   defaultConfig {
     applicationId = "com.aistudio.pulsowatch.xqrmkv"
-    minSdk = 24
+    minSdk = 26
     targetSdk = 36
     versionCode = 1
     versionName = "1.0"
@@ -128,6 +128,10 @@ dependencies {
   implementation(libs.retrofit)
   implementation(libs.play.services.wearable)
   implementation(libs.kotlinx.coroutines.play.services)
+  // Widget deslizable del reloj (Tile).
+  implementation(libs.androidx.wear.tiles)
+  implementation(libs.androidx.wear.protolayout)
+  implementation(libs.androidx.concurrent.futures)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)
