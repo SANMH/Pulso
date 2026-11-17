@@ -99,7 +99,7 @@ class BlackScreenOverlay(
             removeButton()
             addButton()
         } else {
-            removeUnlock()
+            dismissUnlock()
             removeBlack()
             styleButton()
         }
@@ -150,6 +150,8 @@ class BlackScreenOverlay(
 
     private fun cancelHold() {
         val view = unlock ?: return
+        // Ya se completó: soltar el dedo no lo cancela; lo quita setBlack(false) al desbloquear.
+        if (view.isDone) return
         unlock = null
         view.cancel { remove(view) }
     }
@@ -157,6 +159,15 @@ class BlackScreenOverlay(
     private fun removeUnlock() {
         unlock?.let { remove(it) }
         unlock = null
+    }
+
+    /** Al desbloquear: el anillo completo se desvanece en lugar de quedarse en pantalla. */
+    private fun dismissUnlock() {
+        val view = unlock ?: return
+        unlock = null
+        if (view.isDone) view.dismiss { remove(view) } else remove(view)
+        // Red de seguridad: si la animación no llega a terminar, se quita igual.
+        handler.postDelayed({ remove(view) }, 1_000)
     }
 
     /**

@@ -57,6 +57,9 @@ class HoldToUnlockView(
 
     private var progress = 0f
     private var done = false
+
+    /** El anillo se completó: ya no se puede cancelar; lo quita quien desbloquea. */
+    val isDone: Boolean get() = done
     private var animator: ValueAnimator? = null
     private val ring = RectF()
 
@@ -81,7 +84,8 @@ class HoldToUnlockView(
                     done = true
                     invalidate()
                     performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
-                    animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).withEndAction { onComplete() }.start()
+                    animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
+                    onComplete()
                 }
             })
             start()
@@ -102,6 +106,13 @@ class HoldToUnlockView(
             start()
         }
         animate().alpha(0f).setDuration(220).withEndAction(whenGone).start()
+    }
+
+    /** Tras desbloquear: muestra "Desbloqueado" un instante, se desvanece y [whenGone] lo quita. */
+    fun dismiss(whenGone: () -> Unit) {
+        animator?.cancel()
+        animate().cancel()
+        animate().alpha(0f).setStartDelay(350).setDuration(200).withEndAction(whenGone).start()
     }
 
     override fun onDraw(canvas: Canvas) {
