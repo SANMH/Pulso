@@ -12,8 +12,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
-import android.accessibilityservice.AccessibilityServiceInfo
-import android.graphics.Region
 import android.util.Log
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
@@ -124,7 +122,13 @@ class PulsoControlService : AccessibilityService() {
         openApp(target)
     }
 
-    /** Pantalla negra de Pulso: ver [BlackScreenOverlay]. */
+    /**
+     * Pantalla negra de Pulso: ver [BlackScreenOverlay].
+     *
+     * No activar aquí la exploración táctil (FLAG_REQUEST_TOUCH_EXPLORATION_MODE) para bloquear los
+     * bordes: se vio en un teléfono que Android se quedó con dedos "fantasma" apoyados (InputDispatcher:
+     * "pointers already down") y rechazaba todos los toques en ese modo, sin poder desbloquear.
+     */
     private fun setBlackScreen(on: Boolean) {
         blackScreenOn = on
         keepInFront = if (on) {
@@ -134,36 +138,9 @@ class PulsoControlService : AccessibilityService() {
         if (!on) main.removeCallbacks(bringBack)
         main.post {
             if (::overlay.isInitialized) overlay.setBlack(on)
-            interceptTouchscreen(on)
             Log.i(TAG, if (on) "Pantalla negra activada" else "Pantalla negra desactivada")
         }
     }
-
-    /**
-     * Bloquea los bordes con la pantalla negra. Los gestos del sistema (atrás, inicio, cortina de
-     * notificaciones, panel Edge) nacen en los bordes y ninguna capa los detiene; la exploración
-     * táctil (la de TalkBack) sí, porque actúa antes. Se activa solo mientras dura la pantalla negra
-     * y el centro se deja "de paso", así los toques ahí siguen llegando a la capa (Desbloquear).
-     */
-    private fun interceptTouchscreen(on: Boolean) {
-        runCatching {
-            val info = serviceInfo ?: return
-            val flag = AccessibilityServiceInfo.FLAG_REQUEST_TOUCH_EXPLORATION_MODE
-            info.flags = if (on) info.flags or flag else info.flags and flag.inv()
-            serviceInfo = info
-            if (on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                val (w, h) = screenSize()
-                val edge = (EDGE_BLOCK_DP * resources.displayMetrics.density).toInt()
-                setTouchExplorationPassthroughRegion(
-                    android.view.Display.DEFAULT_DISPLAY,
-                    Region(edge, edge, w - edge, h - edge)
-                )
-            }
-        }.onFailure { Log.w(TAG, "No se pudieron bloquear los bordes", it) }
-    }
-
-    /** Toques en los bordes bloqueados: no hacen nada (no se explora ni se enfoca nada). */
-    override fun onGesture(gestureEvent: android.accessibilityservice.AccessibilityGestureEvent): Boolean = true
 
     /** Avisa al reloj de un cambio hecho desde el teléfono, para que su botón de luna no mienta. */
     private fun notifyWatch() {
@@ -430,7 +407,6 @@ class PulsoControlService : AccessibilityService() {
             override fun onCompleted(gestureDescription: GestureDescription?) {
                 if (shielded) main.postDelayed({
                     overlay.setPassThrough(false)
-                    interceptTouchscreen(blackScreenOn)
                 }, 50)
             }
 
@@ -438,7 +414,6 @@ class PulsoControlService : AccessibilityService() {
         }
         if (shielded) {
             overlay.setPassThrough(true)
-            interceptTouchscreen(false)
         }
         // Deja que el sistema aplique el cambio de la capa antes de tocar.
         main.postDelayed({
@@ -446,7 +421,6 @@ class PulsoControlService : AccessibilityService() {
                 Log.w(TAG, "El sistema rechazó el gesto")
                 if (shielded) {
                     overlay.setPassThrough(false)
-                    interceptTouchscreen(blackScreenOn)
                 }
             }
         }, if (shielded) 80L else 0L)
@@ -490,9 +464,6 @@ class PulsoControlService : AccessibilityService() {
 
     companion object {
         private const val TAG = "PulsoControl"
-
-        /** Ancho de la franja de cada borde que se bloquea con la pantalla negra. */
-        private const val EDGE_BLOCK_DP = 56
 
         /** "Omitir", "Skip ad", "Saltar anuncio ›", etc. No acepta la cuenta atrás ("Omitir en 5"). */
         private val SKIP_LABEL =
